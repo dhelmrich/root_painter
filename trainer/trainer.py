@@ -69,7 +69,9 @@ class Trainer():
         self.first_loop = True
         self.in_w = 572
         self.out_w = 500
+        #mem_per_item = 2000000000
         mem_per_item = 3800000000
+
         total_mem = 0
         print('GPU Available', torch.cuda.is_available())
         for i in range(torch.cuda.device_count()):

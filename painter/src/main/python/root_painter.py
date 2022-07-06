@@ -275,22 +275,34 @@ class RootPainter(QtWidgets.QMainWindow):
     def update_annot(self):
         # if locking is enabled and we already were in a file -> make overlay
         if self.nav.locking_enabled and hasattr(self, 'annot_pixmap') :
-            self.previous_pixmap = self.annot_pixmap.toImage()
-            alpha = QtGui.QPixmap(self.im_width, self.im_height)
-            alpha.fill(QtGui.QColor(0,0,0,alpha=128))
-            self.previous_pixmap.setAlphaChannel(alpha.toImage())
-            for i in range(self.previous_pixmap.width()) :
-                for j in range(self.previous_pixmap.height()) :
-                    color = self.previous_pixmap.pixelColor(i,j)
-                    color.setBlue(color.red())
-                    color.setRed(0)
-                    self.previous_pixmap.setPixelColor(color)
-            self.previous_pixmap = QtGui.QPixmap().fromImage(self.previous_pixmap)
+            if hasattr(self,'previous_pixmap') :
+                del self.previous_pixmap
+            imagecontent = self.annot_pixmap.toImage()
+            #alpha = QtGui.QPixmap(self.im_width, self.im_height)
+            #alpha.fill(QtGui.QColor(0,0,0,alpha=128))
+            #imagecontent.setAlphaChannel(alpha.toImage())
+            image2 = QtGui.QImage(imagecontent.width(),imagecontent.height(),imagecontent.format())
+            colorequal = lambda x, y : (x.red() == y.red() and x.green()==y.green() and x.blue()==y.blue())
+            for i in range(imagecontent.width()) :
+                for j in range(imagecontent.height()) :
+                    color = imagecontent.pixelColor(i,j)
+                    newcolor = QtGui.QColor(0,0,0,0)
+                    if colorequal(color, self.scene.foreground_color) :
+                        newcolor = QtGui.QColor(255,255,255,128)
+                    elif colorequal(color, self.scene.background_color) :
+                        newcolor = QtGui.QColor(0,0,0,128)
+                    image2.setPixelColor(i,j,newcolor)
+            self.previous_pixmap = QtGui.QPixmap().fromImage(image2)
             if not hasattr(self, 'frozen_pixmap_holder') :
                 #self.scene.addWidget(self.previous_pixmap)
-                self.frozen_pixmap_holder = self.scene.addPixmap(self.annot_pixmap)
+                self.frozen_pixmap_holder = self.scene.addPixmap(self.previous_pixmap)
             else :
-                self.frozen_pixmap_holder.setPixmap(self.annot_pixmap)
+                self.frozen_pixmap_holder.setPixmap(self.previous_pixmap)
+        elif not self.nav.locking_enabled and hasattr(self, 'frozen_pixmap_holder') :
+            self.scene.removeItem(self.frozen_pixmap_holder)
+            del self.frozen_pixmap_holder
+            if hasattr(self,'previous_pixmap') :
+                del self.previous_pixmap
             
         # if annot file is present then load
         if self.annot_path and os.path.isfile(self.annot_path):
@@ -616,6 +628,38 @@ class RootPainter(QtWidgets.QMainWindow):
             #    print('no seg found', end=",")
         QtCore.QTimer.singleShot(500, check)
 
+    def punch_foreground(self) :
+        if not hasattr(self,'previous_pixmap') :
+            return
+        PreviousContent = self.previous_pixmap.toImage()
+        CombinedAnnot = self.annot_pixmap.toImage()
+        colorequal = lambda x, y : (x.red() == y.red() and x.green()==y.green() and x.blue()==y.blue() and x.alpha() == y.alpha())
+        for i in range(PreviousContent.width()) :
+            for j in range(PreviousContent.height()) :
+                color = PreviousContent.pixelColor(i,j)
+                newcolor = QtGui.QColor(0,0,0,0)
+                if colorequal(color, QtGui.QColor(255,255,255,128)) :
+                    CombinedAnnot.setPixelColor(i,j,self.scene.foreground_color)
+        self.annot_pixmap.convertFromImage(CombinedAnnot)
+        self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
+        return
+
+    def punch_background(self) :
+        if not hasattr(self,'previous_pixmap') :
+            return
+        PreviousContent = self.previous_pixmap.toImage()
+        CombinedAnnot = self.annot_pixmap.toImage()
+        colorequal = lambda x, y : (x.red() == y.red() and x.green()==y.green() and x.blue()==y.blue() and x.alpha() == y.alpha())
+        for i in range(PreviousContent.width()) :
+            for j in range(PreviousContent.height()) :
+                color = PreviousContent.pixelColor(i,j)
+                newcolor = QtGui.QColor(0,0,0,0)
+                if colorequal(color, QtGui.QColor(0,0,0,128)) :
+                    CombinedAnnot.setPixelColor(i,j,self.scene.background_color)
+        self.annot_pixmap.convertFromImage(CombinedAnnot)
+        self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
+        return
+
 
     def close_project_window(self):
         self.close()
@@ -634,7 +678,7 @@ class RootPainter(QtWidgets.QMainWindow):
         edit_menu = menu_bar.addMenu("Edit")
         # Undo
         undo_action = QtWidgets.QAction(QtGui.QIcon(""), "Undo", self)
-        undo_action.setShortcut("Z")
+        undo_action.setShortcut("Ctrl+Z")
         edit_menu.addAction(undo_action)
         undo_action.triggered.connect(self.scene.undo)
 
@@ -643,6 +687,18 @@ class RootPainter(QtWidgets.QMainWindow):
         redo_action.setShortcut("Ctrl+Shift+Z")
         edit_menu.addAction(redo_action)
         redo_action.triggered.connect(self.scene.redo)
+
+        # punch background 
+        punchbg_action = QtWidgets.QAction(QtGui.QIcon(""), "Punch Background", self)
+        punchbg_action.setShortcut("PageDown")
+        edit_menu.addAction(punchbg_action)
+        punchbg_action.triggered.connect(self.punch_background)
+
+        #punch foreground
+        punchfg_action = QtWidgets.QAction(QtGui.QIcon(""), "Punch Foreground", self)
+        punchfg_action.setShortcut("PageUp")
+        edit_menu.addAction(punchfg_action)
+        punchfg_action.triggered.connect(self.punch_foreground)
 
         options_menu = menu_bar.addMenu("Options")
         # pre segment count
