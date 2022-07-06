@@ -234,7 +234,7 @@ class RootPainter(QtWidgets.QMainWindow):
         if os.path.isfile(self.seg_path):
             self.seg_mtime = os.path.getmtime(self.seg_path)
             self.seg_pixmap = QtGui.QPixmap(self.seg_path)
-            self.nav.next_image_button.setText('Save && Next >')
+            self.nav.process_label.setText('Done!')
             if hasattr(self, 'vis_widget'):
                 self.vis_widget.seg_checkbox.setText('Segmentation (S)')
             self.nav.next_image_button.setEnabled(True)
@@ -260,7 +260,7 @@ class RootPainter(QtWidgets.QMainWindow):
             painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 150)))
             painter.drawText(16, 51, 'Loading segmentation')
             painter.end()
-            self.nav.next_image_button.setText('Loading Segmentation...')
+            self.nav.process_label.setText('Loading Segmentation...')
             if hasattr(self, 'vis_widget'):
                 self.vis_widget.seg_checkbox.setText('Segmentation (Loading)')
             self.nav.next_image_button.setEnabled(False)
@@ -273,6 +273,25 @@ class RootPainter(QtWidgets.QMainWindow):
             self.seg_pixmap_holder.setPixmap(self.blank_pixmap)
 
     def update_annot(self):
+        # if locking is enabled and we already were in a file -> make overlay
+        if self.nav.locking_enabled and hasattr(self, 'annot_pixmap') :
+            self.previous_pixmap = self.annot_pixmap.toImage()
+            alpha = QtGui.QPixmap(self.im_width, self.im_height)
+            alpha.fill(QtGui.QColor(0,0,0,alpha=128))
+            self.previous_pixmap.setAlphaChannel(alpha.toImage())
+            for i in range(self.previous_pixmap.width()) :
+                for j in range(self.previous_pixmap.height()) :
+                    color = self.previous_pixmap.pixelColor(i,j)
+                    color.setBlue(color.red())
+                    color.setRed(0)
+                    self.previous_pixmap.setPixelColor(color)
+            self.previous_pixmap = QtGui.QPixmap().fromImage(self.previous_pixmap)
+            if not hasattr(self, 'frozen_pixmap_holder') :
+                #self.scene.addWidget(self.previous_pixmap)
+                self.frozen_pixmap_holder = self.scene.addPixmap(self.annot_pixmap)
+            else :
+                self.frozen_pixmap_holder.setPixmap(self.annot_pixmap)
+            
         # if annot file is present then load
         if self.annot_path and os.path.isfile(self.annot_path):
             self.annot_pixmap = QtGui.QPixmap(self.annot_path)
@@ -582,7 +601,7 @@ class RootPainter(QtWidgets.QMainWindow):
                         print('load seg from file.')
                         self.seg_pixmap = QtGui.QPixmap(self.seg_path)
                         self.seg_mtime = new_mtime
-                        self.nav.next_image_button.setText('Save && Next >')
+                        self.nav.process_label.setText('Done!')
                         self.nav.next_image_button.setEnabled(True)
                         if self.seg_visible:
                             self.seg_pixmap_holder.setPixmap(self.seg_pixmap)
@@ -592,9 +611,9 @@ class RootPainter(QtWidgets.QMainWindow):
                     print('Error: when trying to load segmention ' + str(e))
                     # sometimes problems reading file.
                     # don't worry about this exception
-            else:
-                print('no seg found', end=",")
             QtCore.QTimer.singleShot(500, check)
+            #else:
+            #    print('no seg found', end=",")
         QtCore.QTimer.singleShot(500, check)
 
 

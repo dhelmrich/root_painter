@@ -46,16 +46,27 @@ class NavWidget(QtWidgets.QWidget):
         self.nav_label = QtWidgets.QLabel()
         nav_layout.addWidget(self.nav_label)
 
+        # lock button
+        self.lock_button = QtWidgets.QCheckBox('Lock Annotation')
+        self.lock_button.setFocusPolicy(Qt.NoFocus)
+        self.lock_button.clicked.connect(self.lock_button_engaged)
+        nav_layout.addWidget(self.lock_button)
+        self.locking_enabled = False
+
         # && to escape it and show single &
         self.next_image_button = QtWidgets.QPushButton('Save && Next >')
         self.next_image_button.setFocusPolicy(Qt.NoFocus)
         self.next_image_button.clicked.connect(self.show_next_image)
         nav_layout.addWidget(self.next_image_button)
 
+        self.process_label = QtWidgets.QLabel("Initializing!")
+        self.process_label.setFocusPolicy(Qt.NoFocus)
+        nav_layout.addWidget(self.process_label)
+
         # left, top, right, bottom
         nav_layout.setContentsMargins(0, 0, 0, 5)
         nav.setLayout(nav_layout)
-        nav.setMaximumWidth(600)
+        nav.setMaximumWidth(2000)
 
         container_layout = QtWidgets.QHBoxLayout()
         container_layout.setAlignment(Qt.AlignCenter)
@@ -69,10 +80,12 @@ class NavWidget(QtWidgets.QWidget):
                      for a in all_files]
         return all_paths
 
+    def lock_button_engaged(self, button_value) :
+        self.locking_enabled = button_value
+
     def show_next_image(self):
         self.next_image_button.setEnabled(False)
-        self.next_image_button.setText('Loading..')
-        self.next_image_button.setEnabled(False)
+        self.process_label.setText('Loading Image...')
         QtWidgets.QApplication.processEvents()
         dir_path, _ = os.path.split(self.image_path)
         all_paths = self.get_path_list(dir_path)
