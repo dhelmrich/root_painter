@@ -23,7 +23,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # pylint: disable=W0703
 
 # too many public methods
-# pylint: disable=R0904
 
 import sys
 import os
@@ -46,6 +45,7 @@ from extract_count import ExtractCountWidget
 from extract_regions import ExtractRegionsWidget
 from extract_length import ExtractLengthWidget
 from extract_comp import ExtractCompWidget
+from extract_metrics import ExtractMetricsWidget
 from convert_seg import ConvertSegForRVEWidget
 from graphics_scene import GraphicsScene
 from graphics_view import CustomGraphicsView
@@ -87,7 +87,7 @@ class RootPainter(QtWidgets.QMainWindow):
         self.send_instruction = partial(send_instruction,
                                         instruction_dir=self.instruction_dir,
                                         sync_dir=sync_dir)
-        
+
     def mouse_scroll(self, event):
         scroll_up = event.angleDelta().y() > 0
         modifiers = QtWidgets.QApplication.keyboardModifiers()
@@ -146,7 +146,7 @@ class RootPainter(QtWidgets.QMainWindow):
             self.message_dir = self.proj_location / 'messages'
 
             self.proj_file_path = proj_file_path
-    
+
             # If there are any annotations which have already been saved
             # then go through the annotations in the order specified
             # by self.image_fnames
@@ -445,6 +445,7 @@ class RootPainter(QtWidgets.QMainWindow):
             self.sync_dir = Path(json.load(open(settings_path, 'r'))['sync_dir'])
             self.assign_sync_directory(self.sync_dir)
 
+
     def add_extras_menu(self, menu_bar, project_open=False):
         extras_menu = menu_bar.addMenu('Extras')
         comp_btn = QtWidgets.QAction(QtGui.QIcon('missing.png'), 'Extract composites', self)
@@ -463,7 +464,20 @@ class RootPainter(QtWidgets.QMainWindow):
         specify_sync_dir_btn.triggered.connect(self.specify_sync_directory)
         extras_menu.addAction(specify_sync_dir_btn)
 
+
         if project_open:
+
+            def show_extract_metrics():
+                self.extract_metrics_widget = ExtractMetricsWidget(self.proj_file_path)
+                self.extract_metrics_widget.show()
+
+            metrics_btn = QtWidgets.QAction(QtGui.QIcon('missing.png'),
+                                                        'Compute segmentation metrics',
+                                                        self)
+            metrics_btn.triggered.connect(show_extract_metrics)
+            extras_menu.addAction(metrics_btn)
+
+
             extend_dataset_btn = QtWidgets.QAction(QtGui.QIcon('missing.png'), 'Extend dataset', self)
             def update_dataset_after_check():
                 was_extended, file_names = check_extend_dataset(self,
@@ -477,9 +491,6 @@ class RootPainter(QtWidgets.QMainWindow):
             extend_dataset_btn.triggered.connect(update_dataset_after_check)
             extras_menu.addAction(extend_dataset_btn)
     
-
-
-
 
     def add_about_menu(self, menu_bar):
         about_menu = menu_bar.addMenu('About')
