@@ -25,8 +25,9 @@ from PyQt5 import QtWidgets
 
 from root_painter import RootPainter
 
+
 def init_root_painter():
-    settings_path = os.path.join(Path.home(), 'root_painter_settings.json')
+    settings_path = 'root_painter_settings.json'
     try:
         app = QtWidgets.QApplication([])
         # if the settings file does not exist then create it with

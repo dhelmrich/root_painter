@@ -55,6 +55,7 @@ from file_utils import last_fname_with_annotations
 from file_utils import get_annot_path
 from file_utils import maybe_save_annotation
 from instructions import send_instruction
+from functools import partial
 
 use_plugin("pil")
 
@@ -523,10 +524,38 @@ class RootPainter(QtWidgets.QMainWindow):
         container.setLayout(container_layout)
         self.setCentralWidget(container)
 
+        self.graphics_container = QtWidgets.QWidget()
+        self.vis_layout = QtWidgets.QHBoxLayout()
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        self.graphics_container.setLayout(self.vis_layout)
+
         self.graphics_view = CustomGraphicsView()
         self.graphics_view.zoom_change.connect(self.update_cursor)
 
-        container_layout.addWidget(self.graphics_view)
+        container_layout.addWidget(self.graphics_container)
+        self.vis_layout.addWidget(self.graphics_view)
+
+        self.explorer_widget = QtWidgets.QWidget()
+        self.vis_layout.addWidget(self.explorer_widget)
+        self.explorer_layout = QtWidgets.QVBoxLayout()
+        self.explorer_widget.setLayout(self.explorer_layout)
+        scroll = QtWidgets.QScrollArea()
+        self.explorer_layout.addWidget(scroll)
+        self.datalist = QtWidgets.QVBoxLayout()
+        scroll.setLayout(self.datalist)
+
+        self.file_labels = [QtWidgets.QLabel() for f in self.image_fnames]
+        for i,name in enumerate(self.image_fnames) :
+            self.file_labels[i].setText(name)
+            self.datalist.addWidget(self.file_labels[i])
+            self.file_labels[i].mousePressEvent = partial(self.CheckFile,i)
+        
+        self.overlaybutton = QtWidgets.QPushButton("Set as Overlay")
+        self.explorer_layout.addWidget(self.overlaybutton)
+        self.imagebutton = QtWidgets.QPushButton("Load this Image")
+        self.explorer_layout.addWidget(self.imagebutton)
+
+        self.vis_layout.addWidget(self.graphics_view)
         scene = GraphicsScene()
         scene.parent = self
         self.graphics_view.setScene(scene)
@@ -595,6 +624,12 @@ class RootPainter(QtWidgets.QMainWindow):
             self.update_cursor()
             self.graphics_view.fit_to_view()
         QtCore.QTimer.singleShot(100, view_fix)
+    
+    def CheckFile(self,number,event) :
+        print("Click worked: ", number)
+        for label in self.file_labels :
+            label.setStyleSheet("background:transparent;")
+        self.file_labels[number].setStyleSheet("background: #FAA;")
 
     def track_changes(self):
         if self.tracking:
