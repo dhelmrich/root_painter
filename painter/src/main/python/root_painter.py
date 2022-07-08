@@ -80,6 +80,8 @@ class RootPainter(QtWidgets.QMainWindow):
         self.im_width = None
         self.im_height = None
 
+        self.active_file_number = -1
+
         self.initUI()
 
     def assign_sync_directory(self, sync_dir):
@@ -175,7 +177,7 @@ class RootPainter(QtWidgets.QMainWindow):
 
 
     def update_file(self, fpath):
-        #Â Save current annotation (if it exists) before moving on
+        # Save current annotation (if it exists) before moving on
         self.save_annotation()
 
         # save current annotation first
@@ -202,7 +204,7 @@ class RootPainter(QtWidgets.QMainWindow):
 
 
     def update_image(self):
-        #Â Will also update self.im_width and self.im_height
+        # Will also update self.im_width and self.im_height
         assert os.path.isfile(self.image_path), f"Cannot find file {self.image_path}"
         image_pixmap = QtGui.QPixmap(self.image_path)
         im_size = image_pixmap.size()
@@ -305,7 +307,7 @@ class RootPainter(QtWidgets.QMainWindow):
             if hasattr(self,'previous_pixmap') :
                 del self.previous_pixmap
             
-        #Â if annot file is present then load
+        # if annot file is present then load
         if self.annot_path and os.path.isfile(self.annot_path):
             self.annot_pixmap = QtGui.QPixmap(self.annot_path)
         else:
@@ -554,6 +556,8 @@ class RootPainter(QtWidgets.QMainWindow):
         self.explorer_layout.addWidget(self.overlaybutton)
         self.imagebutton = QtWidgets.QPushButton("Load this Image")
         self.explorer_layout.addWidget(self.imagebutton)
+        self.overlaybutton.clicked.connect(self.change_overlay)
+        self.imagebutton.clicked.connect(self.change_file)
 
         self.vis_layout.addWidget(self.graphics_view)
         scene = GraphicsScene()
@@ -567,7 +571,7 @@ class RootPainter(QtWidgets.QMainWindow):
         self.nav = NavWidget(self.image_fnames)
         self.update_file(self.image_path)
 
-        #Â bottom bar
+        # bottom bar
         bottom_bar = QtWidgets.QWidget()
         bottom_bar_layout = QtWidgets.QHBoxLayout()
         # left, top, right, bottom
@@ -577,7 +581,7 @@ class RootPainter(QtWidgets.QMainWindow):
 
         container_layout.addWidget(bottom_bar)
 
-        #Â Bottom bar left
+        # Bottom bar left
         self.vis_widget = VisibilityWidget()
         self.vis_widget.setMaximumWidth(200)
         self.vis_widget.setMinimumWidth(200)
@@ -586,7 +590,7 @@ class RootPainter(QtWidgets.QMainWindow):
         self.vis_widget.im_checkbox.stateChanged.connect(self.im_checkbox_change)
         bottom_bar_layout.addWidget(self.vis_widget)
 
-        #Â bottom bar right
+        # bottom bar right
         bottom_bar_r = QtWidgets.QWidget()
         bottom_bar_r_layout = QtWidgets.QVBoxLayout()
         bottom_bar_r.setLayout(bottom_bar_r_layout)
@@ -625,11 +629,45 @@ class RootPainter(QtWidgets.QMainWindow):
             self.graphics_view.fit_to_view()
         QtCore.QTimer.singleShot(100, view_fix)
     
+    def change_overlay(self) :
+        print("Changing overlay to...")
+        fname = os.path.basename(self.image_fnames[self.active_file_number])
+        image_path = os.path.join(self.dataset_dir, fname)
+        png_fname = os.path.splitext(fname)[0] + '.png'
+        annotation_path = get_annot_path(png_fname,
+                                         self.train_annot_dir,
+                                         self.val_annot_dir)
+        # if annot file is present then load
+        if  os.path.isfile(annotation_path):
+            image = QtGui.QImage(annotation_path)
+            colorequal = lambda x, y : (x.red() == y.red() and x.green()==y.green() and x.blue()==y.blue())
+            for i in range(image.width()) :
+                for j in range(image.height()) :
+                    color = image.pixelColor(i,j)
+                    newcolor = QtGui.QColor(0,0,0,0)
+                    if colorequal(color, self.scene.foreground_color) :
+                        newcolor = QtGui.QColor(255,255,255,128)
+                    elif colorequal(color, self.scene.background_color) :
+                        newcolor = QtGui.QColor(0,0,0,128)
+                    image.setPixelColor(i,j,newcolor)
+            self.previous_pixmap = QtGui.QPixmap().fromImage(image)
+            if not hasattr(self, 'frozen_pixmap_holder') :
+                #self.scene.addWidget(self.previous_pixmap)
+                self.frozen_pixmap_holder = self.scene.addPixmap(self.previous_pixmap)
+            else :
+                self.frozen_pixmap_holder.setPixmap(self.previous_pixmap)
+        else :
+            print("Not a file: ", str(annotation_path))
+
+    def change_file(self) :
+      print("Changing file to active one in explorer")
+      self.update_file(self.image_fnames[self.active_file_number])
+    
     def CheckFile(self,number,event) :
-        print("Click worked: ", number)
-        for label in self.file_labels :
-            label.setStyleSheet("background:transparent;")
-        self.file_labels[number].setStyleSheet("background: #FAA;")
+        if self.active_file_number >= 0 :
+            self.file_labels[self.active_file_number].setStyleSheet("background:transparent;")
+        self.active_file_number = number
+        self.file_labels[self.active_file_number].setStyleSheet("background: #FAA;")
 
     def track_changes(self):
         if self.tracking:
@@ -652,7 +690,7 @@ class RootPainter(QtWidgets.QMainWindow):
                     print('Caught exception when trying to detele msg', e)
             if hasattr(self, 'seg_path') and os.path.isfile(self.seg_path):
                 try:
-                    #Â seg mtime is not actually used any more.
+                    # seg mtime is not actually used any more.
                     new_mtime = os.path.getmtime(self.seg_path)
                     # seg_mtime is None before the seg is loaded.
                     if not self.seg_mtime:
@@ -688,6 +726,7 @@ class RootPainter(QtWidgets.QMainWindow):
                     CombinedAnnot.setPixelColor(i,j,self.scene.foreground_color)
         self.annot_pixmap.convertFromImage(CombinedAnnot)
         self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
+        self.scene.history.append(self.scene.annot_pixmap.copy())
         return
 
     def punch_background(self) :
@@ -704,6 +743,7 @@ class RootPainter(QtWidgets.QMainWindow):
                     CombinedAnnot.setPixelColor(i,j,self.scene.background_color)
         self.annot_pixmap.convertFromImage(CombinedAnnot)
         self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
+        self.scene.history.append(self.scene.annot_pixmap.copy())
         return
 
 
