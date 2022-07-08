@@ -1,4 +1,6 @@
-## RootPainter
+## RootPainter Fork Project with Time Series Support
+
+Directly requested by root scientists for an optimization of their workflows.
 
 Described in the paper "RootPainter: Deep Learning Segmentation of Biological Images with Corrective Annotation"
 
