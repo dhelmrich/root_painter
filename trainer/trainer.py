@@ -54,8 +54,7 @@ class Trainer():
         if sync_dir:
             self.sync_dir = sync_dir
         else:
-            self.settings_path = os.path.join(Path.home(),
-                                              'root_painter_settings.json')
+            self.settings_path = './root_painter_settings.json'
             startup_setup(self.settings_path)
             self.sync_dir = Path(json.load(open(self.settings_path, 'r'))['sync_dir'])
 
