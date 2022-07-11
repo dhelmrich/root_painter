@@ -26,6 +26,7 @@ class NavWidget(QtWidgets.QWidget):
     """ Shows next and previous buttons as well as image position in folder.
     """
     file_change = QtCore.pyqtSignal(str)
+    save_image = QtCore.pyqtSignal(str)
 
     def __init__(self, all_fnames):
         super().__init__()
@@ -53,11 +54,18 @@ class NavWidget(QtWidgets.QWidget):
         nav_layout.addWidget(self.lock_button)
         self.locking_enabled = False
 
+        self.save_image_button = QtWidgets.QPushButton("Save")
+        self.save_image_button.setFocusPolicy(Qt.NoFocus)
+        self.save_image_button.clicked.connect(self.save_image_request)
+        nav_layout.addWidget(self.save_image_button)
+
         # && to escape it and show single &
         self.next_image_button = QtWidgets.QPushButton('Save && Next >')
         self.next_image_button.setFocusPolicy(Qt.NoFocus)
         self.next_image_button.clicked.connect(self.show_next_image)
         nav_layout.addWidget(self.next_image_button)
+
+        
 
         self.process_label = QtWidgets.QLabel("Initializing!")
         self.process_label.setFocusPolicy(Qt.NoFocus)
@@ -85,6 +93,7 @@ class NavWidget(QtWidgets.QWidget):
 
     def show_next_image(self):
         self.next_image_button.setEnabled(False)
+        self.save_image_button.setEnabled(False)
         self.process_label.setText('Loading Image...')
         QtWidgets.QApplication.processEvents()
         dir_path, _ = os.path.split(self.image_path)
@@ -96,6 +105,10 @@ class NavWidget(QtWidgets.QWidget):
         self.image_path = all_paths[next_idx]
         self.file_change.emit(self.image_path)
         self.update_nav_label()
+
+    def save_image_request(self) :
+        QtWidgets.QApplication.processEvents()
+        self.file_change.emit(self.image_path)
 
     def show_prev_image(self):
         dir_path, _ = os.path.split(self.image_path)

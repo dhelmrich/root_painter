@@ -29,6 +29,7 @@ import os
 from pathlib import PurePath, Path
 import json
 from functools import partial
+from natsort import natsort_key
 
 from skimage.io import use_plugin
 from PyQt5 import QtWidgets
@@ -138,7 +139,7 @@ class RootPainter(QtWidgets.QMainWindow):
             self.dataset_dir = self.sync_dir / 'datasets' / PurePath(settings['dataset'])
 
             self.proj_location = self.sync_dir / PurePath(settings['location'])
-            self.image_fnames = settings['file_names']
+            self.image_fnames = sorted(settings['file_names'],key=natsort_key)
             self.seg_dir = self.proj_location / 'segmentations'
             self.log_dir = self.proj_location / 'logs'
             self.train_annot_dir = self.proj_location / 'annotations' / 'train'
@@ -241,6 +242,7 @@ class RootPainter(QtWidgets.QMainWindow):
             if hasattr(self, 'vis_widget'):
                 self.vis_widget.seg_checkbox.setText('Segmentation (S)')
             self.nav.next_image_button.setEnabled(True)
+            self.nav.save_image_button.setEnabled(True)
         else:
             self.seg_mtime = None
             # otherwise use blank
@@ -267,6 +269,7 @@ class RootPainter(QtWidgets.QMainWindow):
             if hasattr(self, 'vis_widget'):
                 self.vis_widget.seg_checkbox.setText('Segmentation (Loading)')
             self.nav.next_image_button.setEnabled(False)
+            self.nav.save_image_button.setEnabled(False)
 
         if self.seg_pixmap_holder:
             self.seg_pixmap_holder.setPixmap(self.seg_pixmap)
@@ -598,6 +601,7 @@ class RootPainter(QtWidgets.QMainWindow):
 
         # Nav
         self.nav.file_change.connect(self.update_file)
+        self.nav.save_image.connect(self.save_all)
 
         self.nav.image_path = self.image_path
         self.nav.update_nav_label()
@@ -637,8 +641,10 @@ class RootPainter(QtWidgets.QMainWindow):
         annotation_path = get_annot_path(png_fname,
                                          self.train_annot_dir,
                                          self.val_annot_dir)
+        if annotation_path is None :
+            print("Not a file: ", str(annotation_path))
         # if annot file is present then load
-        if  os.path.isfile(annotation_path):
+        elif os.path.isfile(annotation_path) :
             image = QtGui.QImage(annotation_path)
             colorequal = lambda x, y : (x.red() == y.red() and x.green()==y.green() and x.blue()==y.blue())
             for i in range(image.width()) :
@@ -699,6 +705,7 @@ class RootPainter(QtWidgets.QMainWindow):
                         self.seg_mtime = new_mtime
                         self.nav.process_label.setText('Done!')
                         self.nav.next_image_button.setEnabled(True)
+                        self.nav.save_image_button.setEnabled(True)
                         if self.seg_visible:
                             self.seg_pixmap_holder.setPixmap(self.seg_pixmap)
                         if hasattr(self, 'vis_widget'):
@@ -1122,3 +1129,7 @@ class RootPainter(QtWidgets.QMainWindow):
                                                     self.png_fname,
                                                     self.train_annot_dir,
                                                     self.val_annot_dir)
+
+    def save_all(self) :
+      #todo trigger overwrite of segmentation
+      self.save_annotation()

@@ -25,6 +25,7 @@ import json
 from pathlib import Path, PurePosixPath
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
+from natsort import natsort_key
 
 from im_utils import is_image
 from name_edit_widget import NameEditWidget
@@ -237,8 +238,8 @@ class CreateProjectWidget(QtWidgets.QWidget):
         # images only
         all_fnames = [a for a in all_fnames if is_image(a)]
 
-        all_fnames = sorted(all_fnames)
-        random.shuffle(all_fnames)
+        all_fnames = sorted(all_fnames,key=natsort_key)
+        #random.shuffle(all_fnames)
 
         # create project file.
         project_info = {
