@@ -24,12 +24,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # too many public methods
 
+import io
 import sys
 import os
 from pathlib import PurePath, Path
 import json
 from functools import partial
 from natsort import natsort_key
+
+import cv2
 
 from skimage.io import use_plugin
 from PyQt5 import QtWidgets
@@ -57,6 +60,9 @@ from file_utils import get_annot_path
 from file_utils import maybe_save_annotation
 from instructions import send_instruction
 from functools import partial
+import qimage2ndarray
+
+import numpy as np
 
 use_plugin("pil")
 
@@ -178,7 +184,7 @@ class RootPainter(QtWidgets.QMainWindow):
 
 
     def update_file(self, fpath):
-        # Save current annotation (if it exists) before moving on
+        # Save current annotation (if it exists) before moving on
         self.save_annotation()
 
         # save current annotation first
@@ -202,10 +208,8 @@ class RootPainter(QtWidgets.QMainWindow):
         self.segment_current_image()
         self.update_window_title()
 
-
-
     def update_image(self):
-        # Will also update self.im_width and self.im_height
+        # Will also update self.im_width and self.im_height
         assert os.path.isfile(self.image_path), f"Cannot find file {self.image_path}"
         image_pixmap = QtGui.QPixmap(self.image_path)
         im_size = image_pixmap.size()
@@ -310,7 +314,7 @@ class RootPainter(QtWidgets.QMainWindow):
             if hasattr(self,'previous_pixmap') :
                 del self.previous_pixmap
             
-        # if annot file is present then load
+        #ï¿½if annot file is present then load
         if self.annot_path and os.path.isfile(self.annot_path):
             self.annot_pixmap = QtGui.QPixmap(self.annot_path)
         else:
@@ -540,20 +544,30 @@ class RootPainter(QtWidgets.QMainWindow):
         container_layout.addWidget(self.graphics_container)
         self.vis_layout.addWidget(self.graphics_view)
 
-        self.explorer_widget = QtWidgets.QWidget()
-        self.vis_layout.addWidget(self.explorer_widget)
-        self.explorer_layout = QtWidgets.QVBoxLayout()
-        self.explorer_widget.setLayout(self.explorer_layout)
-        scroll = QtWidgets.QScrollArea()
-        self.explorer_layout.addWidget(scroll)
+        self.explorer_widget = QtWidgets.QWidget() # ja
+        self.vis_layout.addWidget(self.explorer_widget) # ja
+        #self.explorer_widget.setMaximumWidth(120)
+        self.explorer_layout = QtWidgets.QVBoxLayout(self.explorer_widget) # ja
+        #self.explorer_widget.setLayout(self.explorer_layout)
+        self.databox = QtWidgets.QWidget()
+        self.scroll = QtWidgets.QScrollArea()
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scroll.setWidgetResizable(True)
+        self.databox.setContentsMargins(0,0,0,0)
         self.datalist = QtWidgets.QVBoxLayout()
-        scroll.setLayout(self.datalist)
+        self.databox.setLayout(self.datalist)
+        self.scroll.setWidget(self.databox)
+        #
+        self.explorer_layout.addWidget(self.scroll)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
 
-        self.file_labels = [QtWidgets.QLabel() for f in self.image_fnames]
+        self.file_labels = [QtWidgets.QLabel(f) for f in self.image_fnames]
         for i,name in enumerate(self.image_fnames) :
-            self.file_labels[i].setText(name)
+            #self.file_labels[i].setText(name)
             self.datalist.addWidget(self.file_labels[i])
             self.file_labels[i].mousePressEvent = partial(self.CheckFile,i)
+            #self.file_labels[i].setMinimumHeight(14)
         
         self.overlaybutton = QtWidgets.QPushButton("Set as Overlay")
         self.explorer_layout.addWidget(self.overlaybutton)
@@ -574,7 +588,7 @@ class RootPainter(QtWidgets.QMainWindow):
         self.nav = NavWidget(self.image_fnames)
         self.update_file(self.image_path)
 
-        # bottom bar
+        # bottom bar
         bottom_bar = QtWidgets.QWidget()
         bottom_bar_layout = QtWidgets.QHBoxLayout()
         # left, top, right, bottom
@@ -584,7 +598,7 @@ class RootPainter(QtWidgets.QMainWindow):
 
         container_layout.addWidget(bottom_bar)
 
-        # Bottom bar left
+        # Bottom bar left
         self.vis_widget = VisibilityWidget()
         self.vis_widget.setMaximumWidth(200)
         self.vis_widget.setMinimumWidth(200)
@@ -593,7 +607,7 @@ class RootPainter(QtWidgets.QMainWindow):
         self.vis_widget.im_checkbox.stateChanged.connect(self.im_checkbox_change)
         bottom_bar_layout.addWidget(self.vis_widget)
 
-        # bottom bar right
+        # bottom bar right
         bottom_bar_r = QtWidgets.QWidget()
         bottom_bar_r_layout = QtWidgets.QVBoxLayout()
         bottom_bar_r.setLayout(bottom_bar_r_layout)
@@ -643,7 +657,7 @@ class RootPainter(QtWidgets.QMainWindow):
                                          self.val_annot_dir)
         if annotation_path is None :
             print("Not a file: ", str(annotation_path))
-        # if annot file is present then load
+        #ï¿½if annot file is present then load
         elif os.path.isfile(annotation_path) :
             image = QtGui.QImage(annotation_path)
             colorequal = lambda x, y : (x.red() == y.red() and x.green()==y.green() and x.blue()==y.blue())
@@ -696,7 +710,7 @@ class RootPainter(QtWidgets.QMainWindow):
                     print('Caught exception when trying to detele msg', e)
             if hasattr(self, 'seg_path') and os.path.isfile(self.seg_path):
                 try:
-                    # seg mtime is not actually used any more.
+                    #ï¿½seg mtime is not actually used any more.
                     new_mtime = os.path.getmtime(self.seg_path)
                     # seg_mtime is None before the seg is loaded.
                     if not self.seg_mtime:
@@ -720,39 +734,50 @@ class RootPainter(QtWidgets.QMainWindow):
         QtCore.QTimer.singleShot(500, check)
 
     def punch_foreground(self) :
+
         if not hasattr(self,'previous_pixmap') :
             return
-        PreviousContent = self.previous_pixmap.toImage()
-        CombinedAnnot = self.annot_pixmap.toImage()
-        colorequal = lambda x, y : (x.red() == y.red() and x.green()==y.green() and x.blue()==y.blue() and x.alpha() == y.alpha())
-        for i in range(PreviousContent.width()) :
-            for j in range(PreviousContent.height()) :
-                color = PreviousContent.pixelColor(i,j)
-                newcolor = QtGui.QColor(0,0,0,0)
-                if colorequal(color, QtGui.QColor(255,255,255,128)) :
-                    CombinedAnnot.setPixelColor(i,j,self.scene.foreground_color)
-        self.annot_pixmap.convertFromImage(CombinedAnnot)
-        self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
+        segmentation_rgba = np.array(qimage2ndarray.byte_view(self.previous_pixmap.toImage())).astype("float")
+        mask = np.repeat((segmentation_rgba[:,:,3]/255.0)[:,:,None],4,axis=2)
+        annotation_rgba = np.array(qimage2ndarray.byte_view(self.annot_pixmap.toImage())).astype("float")
+        annotation_rgba[:,:,0] = np.where((segmentation_rgba[:,:,0] > 0.5) & (segmentation_rgba[:,:,3] > 0.5),self.scene.foreground_color.red(),annotation_rgba[:,:,0])
+        annotation_rgba[:,:,1] = np.where((segmentation_rgba[:,:,0] > 0.5) & (segmentation_rgba[:,:,3] > 0.5),self.scene.foreground_color.green(),annotation_rgba[:,:,1])
+        annotation_rgba[:,:,2] = np.where((segmentation_rgba[:,:,0] > 0.5) & (segmentation_rgba[:,:,3] > 0.5),self.scene.foreground_color.blue(),annotation_rgba[:,:,2])
+        annotation_rgba[:,:,3] = np.where((segmentation_rgba[:,:,0] > 0.5) & (segmentation_rgba[:,:,3] > 0.5),self.scene.foreground_color.alpha(),annotation_rgba[:,:,3])
+        self.annot_pixmap.convertFromImage(qimage2ndarray.array2qimage(annotation_rgba))
         self.scene.history.append(self.scene.annot_pixmap.copy())
+        self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
         return
 
     def punch_background(self) :
         if not hasattr(self,'previous_pixmap') :
             return
-        PreviousContent = self.previous_pixmap.toImage()
-        CombinedAnnot = self.annot_pixmap.toImage()
-        colorequal = lambda x, y : (x.red() == y.red() and x.green()==y.green() and x.blue()==y.blue() and x.alpha() == y.alpha())
-        for i in range(PreviousContent.width()) :
-            for j in range(PreviousContent.height()) :
-                color = PreviousContent.pixelColor(i,j)
-                newcolor = QtGui.QColor(0,0,0,0)
-                if colorequal(color, QtGui.QColor(0,0,0,128)) :
-                    CombinedAnnot.setPixelColor(i,j,self.scene.background_color)
-        self.annot_pixmap.convertFromImage(CombinedAnnot)
-        self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
+        segmentation_rgba = np.array(qimage2ndarray.byte_view(self.previous_pixmap.toImage())).astype("float")
+        mask = np.repeat((segmentation_rgba[:,:,3]/255.0)[:,:,None],4,axis=2)
+        annotation_rgba = np.array(qimage2ndarray.byte_view(self.annot_pixmap.toImage())).astype("float")
+        background_color = np.array([self.scene.background_color.red(), \
+        self.scene.background_color.green(), \
+        self.scene.background_color.blue(), \
+        self.scene.background_color.alpha()])
+        annotation_rgba[:,:,0] = np.where((segmentation_rgba[:,:,0] < 0.001) & (segmentation_rgba[:,:,3] > 0.5),background_color[0],annotation_rgba[:,:,0])
+        annotation_rgba[:,:,1] = np.where((segmentation_rgba[:,:,0] < 0.001) & (segmentation_rgba[:,:,3] > 0.5),background_color[1],annotation_rgba[:,:,1])
+        annotation_rgba[:,:,2] = np.where((segmentation_rgba[:,:,0] < 0.001) & (segmentation_rgba[:,:,3] > 0.5),background_color[2],annotation_rgba[:,:,2])
+        annotation_rgba[:,:,3] = np.where((segmentation_rgba[:,:,0] < 0.001) & (segmentation_rgba[:,:,3] > 0.5),background_color[3],annotation_rgba[:,:,3])
+        #annotation_rgba[:,:] = np.where((segmentation_rgba[:,:,0] < 0.001) & (segmentation_rgba[:,:,3] > 0.5),background_color,annotation_rgba[:,:])
+        self.annot_pixmap.convertFromImage(qimage2ndarray.array2qimage(annotation_rgba))
         self.scene.history.append(self.scene.annot_pixmap.copy())
+        self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
         return
 
+    def punch_segmentation(self) :
+        seg_image = self.seg_pixmap.toImage()
+        ano_image = self.annot_pixmap.toImage()
+        segmentation_rgba = np.array(qimage2ndarray.byte_view(seg_image))
+        annotation_rgba = np.array(qimage2ndarray.byte_view(ano_image))
+        annotation_rgba = annotation_rgba + segmentation_rgba
+        self.annot_pixmap.convertFromImage(qimage2ndarray.array2qimage(annotation_rgba))
+        self.scene.history.append(self.scene.annot_pixmap.copy())
+        self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
 
     def close_project_window(self):
         self.close()
@@ -783,15 +808,21 @@ class RootPainter(QtWidgets.QMainWindow):
 
         # punch background 
         punchbg_action = QtWidgets.QAction(QtGui.QIcon(""), "Punch Background", self)
-        punchbg_action.setShortcut("PageDown")
+        punchbg_action.setShortcut("Ctrl+Alt+1")
         edit_menu.addAction(punchbg_action)
         punchbg_action.triggered.connect(self.punch_background)
 
         #punch foreground
         punchfg_action = QtWidgets.QAction(QtGui.QIcon(""), "Punch Foreground", self)
-        punchfg_action.setShortcut("PageUp")
+        punchfg_action.setShortcut("Ctrl+Alt+2")
         edit_menu.addAction(punchfg_action)
         punchfg_action.triggered.connect(self.punch_foreground)
+
+        #punch foreground
+        punchsg_action = QtWidgets.QAction(QtGui.QIcon(""), "Punch Segmentation", self)
+        punchsg_action.setShortcut("Ctrl+Alt+3")
+        edit_menu.addAction(punchsg_action)
+        punchsg_action.triggered.connect(self.punch_segmentation)
 
         options_menu = menu_bar.addMenu("Options")
         # pre segment count
@@ -1132,4 +1163,11 @@ class RootPainter(QtWidgets.QMainWindow):
 
     def save_all(self) :
       #todo trigger overwrite of segmentation
+      from PIL import Image
+      import cv2
+      annot_path = Path.joinpath(self.annot_path)
+      Annotation = cv2.imread()
+      Image = cv2.imread(self.png_fname)
+      
       self.save_annotation()
+      
