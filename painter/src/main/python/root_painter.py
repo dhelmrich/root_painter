@@ -1254,13 +1254,8 @@ class RootPainter(QtWidgets.QMainWindow):
         buffer = QtCore.QBuffer()
         buffer.open(QtCore.QBuffer.ReadWrite)
 
-        seg_image.save(buffer,"PNG")
+        annot_image.save(buffer,"PNG")
         pil_seg = Image.open(io.BytesIO(buffer.data()))
-        
-        seg_array = np.array(qimage2ndarray.byte_view(seg_image))
-        seg_array = np.concatenate([seg_array,seg_array,seg_array],axis=2)
-        annot_array = np.array(qimage2ndarray.byte_view(annot_image))
-        annot_array = np.concatenate([annot_array,annot_array,annot_array],axis=2)
 
         #result = np.clip(annot_array,0,255)
         savepath = os.path.join(self.sync_dir, self.png_fname)
