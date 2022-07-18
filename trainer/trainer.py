@@ -29,6 +29,7 @@ from functools import partial
 import copy
 import traceback
 import multiprocessing
+import shutil
 
 import numpy as np
 import torch
@@ -88,7 +89,8 @@ class Trainer():
         # These can be trigged by data sent from client
         self.valid_instructions = [self.start_training,
                                    self.segment,
-                                   self.stop_training]
+                                   self.stop_training,
+                                   self.copy_over]
 
     def main_loop(self):
         print('Started main loop. Checking for instructions in',
@@ -354,6 +356,13 @@ class Trainer():
         with open(os.path.join(self.sync_dir, 'server_log.txt'), 'a+') as log_file:
             log_file.write(f"{datetime.now()}|{time.time()}|{message}\n")
             log_file.flush()
+
+    def copy_over(self, copy_config) :
+        print("Copying files...")
+        in_dir = copy_config["source"]
+        if os.path.isfile(copy_config["destination"]) :
+            os.remove(copy_config["destination"])
+        shutil.copyfile(copy_config["source"],copy_config["destination"])
 
     def segment(self, segment_config):
         """
