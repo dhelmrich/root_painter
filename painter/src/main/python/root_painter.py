@@ -776,7 +776,6 @@ class RootPainter(QtWidgets.QMainWindow):
         self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
         self.scene.history.append(self.scene.annot_pixmap.copy())
         return
-        
 
     def punch_background(self) :
         """
@@ -814,7 +813,6 @@ class RootPainter(QtWidgets.QMainWindow):
         self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
         self.scene.history.append(self.scene.annot_pixmap.copy())
         return
-        
 
     def punch_segmentation(self) :
         if not hasattr(self,'seg_pixmap') :
@@ -1265,7 +1263,7 @@ class RootPainter(QtWidgets.QMainWindow):
         annot_array = np.concatenate([annot_array,annot_array,annot_array],axis=2)
 
         #result = np.clip(annot_array,0,255)
-        savepath = os.path.join(self.train_annot_dir, self.png_fname)
+        savepath = os.path.join(self.sync_dir, self.png_fname)
         destpath = os.path.join(self.seg_dir, self.png_fname)
         print("Saving in: ", savepath)
         pil_seg.save(savepath)
