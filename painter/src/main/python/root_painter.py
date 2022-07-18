@@ -1236,6 +1236,8 @@ class RootPainter(QtWidgets.QMainWindow):
             return
         seg_image = self.seg_pixmap.toImage()
         annot_image = self.annot_pixmap.toImage()
+        seg_image = seg_image.convertToFormat(QtGui.QImage.Format.Format_Grayscale8)
+        annot_image = annot_image.convertToFormat(QtGui.QImage.Format.Format_Grayscale8)
         seg_array = np.array(qimage2ndarray.byte_view(seg_image))
         seg_array = np.concatenate([seg_array,seg_array,seg_array],axis=2)
         annot_array = np.array(qimage2ndarray.byte_view(annot_image))
