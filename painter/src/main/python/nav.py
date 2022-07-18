@@ -107,8 +107,9 @@ class NavWidget(QtWidgets.QWidget):
         self.update_nav_label()
 
     def save_image_request(self) :
+        print("Received save image click")
         QtWidgets.QApplication.processEvents()
-        self.file_change.emit(self.image_path)
+        self.save_image.emit(self.image_path)
 
     def show_prev_image(self):
         dir_path, _ = os.path.split(self.image_path)
