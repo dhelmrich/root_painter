@@ -1266,6 +1266,8 @@ class RootPainter(QtWidgets.QMainWindow):
         savepath = os.path.join(self.sync_dir, self.png_fname)
         destpath = os.path.join(self.seg_dir, self.png_fname)
         print("Saving in: ", savepath)
+        if os.path.isfile(savepath) :
+            os.remove(savepath)
         pil_seg.save(savepath)
         self.send_instruction("copy_over",{"source":str(savepath),"destination":destpath})
 
