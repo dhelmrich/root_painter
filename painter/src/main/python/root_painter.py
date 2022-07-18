@@ -63,6 +63,7 @@ from instructions import send_instruction
 from functools import partial
 import qimage2ndarray
 from matplotlib import pyplot as plt
+from PIL import Image
 
 import numpy as np
 
@@ -817,6 +818,7 @@ class RootPainter(QtWidgets.QMainWindow):
     def punch_segmentation(self) :
         if not hasattr(self,'seg_pixmap') :
             return
+        """
         print("Punching segmentation...")
         SegmentationContent = self.seg_pixmap.toImage()
         CombinedAnnot = self.annot_pixmap.toImage()
@@ -845,7 +847,6 @@ class RootPainter(QtWidgets.QMainWindow):
         self.annot_pixmap.convertFromImage(qimage2ndarray.array2qimage(annotation_rgba))
         self.scene.history.append(self.scene.annot_pixmap.copy())
         self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
-        """
 
     def close_project_window(self):
         self.close()
@@ -1228,43 +1229,26 @@ class RootPainter(QtWidgets.QMainWindow):
                                                     self.png_fname,
                                                     self.train_annot_dir,
                                                     self.val_annot_dir)
+        self.save_all()
 
-    def save_all(self, fpath:str) :
-        # save current annotation first
-        fname = os.path.basename(fpath)
-        # set first image from project to be current image
-        image_path = os.path.join(self.dataset_dir, fname)
-        png_fname = os.path.splitext(fname)[0] + '.png'
-        seg_path = os.path.join(self.seg_dir, self.png_fname)
-        annot_path = get_annot_path(png_fname,
-                                         self.train_annot_dir,
-                                         self.val_annot_dir)
-        #todo trigger overwrite of segmentation
-        from PIL import Image
-        import cv2
-        #annot_path = Path.joinpath(self.annot_path)
-        #Annotation = cv2.imread()
-        #Image = cv2.imread(self.png_fname)
+    def save_all(self) :
+        if not hasattr(self,"seg_pixmap") :
+            return
         seg_image = self.seg_pixmap.toImage()
         annot_image = self.annot_pixmap.toImage()
-        #seg_image = seg_image.convertToFormat(QtGui.QImage.Format.Format_Grayscale8)
-        #annot_image = annot_image.convertToFormat(QtGui.QImage.Format.Format_Grayscale8)
-        annot_array = qimage2ndarray.byte_view(annot_image)
-
-        buffer = QtCore.QBuffer()
-        buffer.open(QtCore.QBuffer.ReadWrite)
-
-        annot_image.save(buffer,"PNG")
-        pil_seg = Image.open(io.BytesIO(buffer.data()))
-
-        #result = np.clip(annot_array,0,255)
-        savepath = os.path.join(self.sync_dir, self.png_fname)
-        destpath = os.path.join(self.seg_dir, self.png_fname)
-        print("Saving in: ", savepath)
-        if os.path.isfile(savepath) :
-            os.remove(savepath)
-        pil_seg.save(savepath)
-        self.send_instruction("copy_over",{"source":str(savepath),"destination":destpath})
-
-        self.save_annotation()
+        seg_array = np.array(qimage2ndarray.byte_view(seg_image))
+        seg_array = np.concatenate([seg_array,seg_array,seg_array],axis=2)
+        annot_array = np.array(qimage2ndarray.byte_view(annot_image))
+        annot_array = np.concatenate([annot_array,annot_array,annot_array],axis=2)        
+        result = np.clip(annot_array,0,255)
+        result = np.where(result != 87, 0, result)        
+        result_image = Image.fromarray(result)
+        savepath = os.path.join(self.seg_dir, self.seg_path)
+        try:
+            print("Saving in: ", savepath)
+            result_image.save(savepath[:-4] + '_final.png')
+        except PermissionError:
+            os.remove(savepath[:-4] + '_final.png')
+            print('Overwrite...')
+            result_image.save(savepath[:-4] + '_final.png')
       
