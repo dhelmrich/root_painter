@@ -26,7 +26,7 @@ class NavWidget(QtWidgets.QWidget):
     """ Shows next and previous buttons as well as image position in folder.
     """
     file_change = QtCore.pyqtSignal(str)
-    save_image = QtCore.pyqtSignal(str)
+    save_image = QtCore.pyqtSignal()
 
     def __init__(self, all_fnames):
         super().__init__()

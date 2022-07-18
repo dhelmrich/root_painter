@@ -1,0 +1,43 @@
+diff --git a/painter/src/main/python/root_painter.py b/painter/src/main/python/root_painter.py
+index b183fbc..f9f04c9 100644
+--- a/painter/src/main/python/root_painter.py
++++ b/painter/src/main/python/root_painter.py
+@@ -1247,24 +1228,26 @@ class RootPainter(QtWidgets.QMainWindow):
+         #Image = cv2.imread(self.png_fname)
+         seg_image = self.seg_pixmap.toImage()
+         annot_image = self.annot_pixmap.toImage()
+-        #seg_image = seg_image.convertToFormat(QtGui.QImage.Format.Format_Grayscale8)
+-        #annot_image = annot_image.convertToFormat(QtGui.QImage.Format.Format_Grayscale8)
+-        annot_array = qimage2ndarray.byte_view(annot_image)
++        seg_image = seg_image.convertToFormat(QtGui.QImage.Format.Format_Grayscale8)
++        annot_image = annot_image.convertToFormat(QtGui.QImage.Format.Format_Grayscale8)
+ 
+         buffer = QtCore.QBuffer()
+         buffer.open(QtCore.QBuffer.ReadWrite)
+ 
+-        annot_image.save(buffer,"PNG")
++        seg_image.save(buffer,"PNG")
+         pil_seg = Image.open(io.BytesIO(buffer.data()))
+ 
+-        #result = np.clip(annot_array,0,255)
+-        savepath = os.path.join(self.sync_dir, self.png_fname)
+-        destpath = os.path.join(self.seg_dir, self.png_fname)
++        
++        seg_array = np.array(qimage2ndarray.byte_view(seg_image))
++        seg_array = np.concatenate([seg_array,seg_array,seg_array],axis=2)
++        annot_array = np.array(qimage2ndarray.byte_view(annot_image))
++        annot_array = np.concatenate([annot_array,annot_array,annot_array],axis=2)
++
++        result = np.clip(annot_array,0,255)
++        result_image = Image.fromarray(result)
++        savepath = os.path.join(self.seg_dir, self.seg_path)
+         print("Saving in: ", savepath)
+-        if os.path.isfile(savepath) :
+-            os.remove(savepath)
+-        pil_seg.save(savepath)
+-        self.send_instruction("copy_over",{"source":str(savepath),"destination":destpath})
++        result_image.save(savepath)
+ 
+         self.save_annotation()
+       
+\ No newline at end of file
