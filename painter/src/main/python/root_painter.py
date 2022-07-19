@@ -1232,7 +1232,7 @@ class RootPainter(QtWidgets.QMainWindow):
         self.save_all()
 
     def save_all(self) :
-        if not hasattr(self,"seg_pixmap") :
+        if not hasattr(self,"seg_pixmap") or not hasattr(self,"annot_pixmap") :
             return
         seg_image = self.seg_pixmap.toImage()
         annot_image = self.annot_pixmap.toImage()
@@ -1243,7 +1243,7 @@ class RootPainter(QtWidgets.QMainWindow):
         annot_array = np.array(qimage2ndarray.byte_view(annot_image))
         annot_array = np.concatenate([annot_array,annot_array,annot_array],axis=2)        
         result = np.clip(annot_array,0,255)
-        result = np.where(result != 87, 0, result)        
+        result = np.where(result != 87, 0, result)
         result_image = Image.fromarray(result)
         savepath = os.path.join(self.seg_dir, self.seg_path)
         try:
