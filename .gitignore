@@ -103,3 +103,12 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+root_painter_settings.json
+*.png
+*.JPG
+*.PNG
+*.jpg
+datasets/
+instructions/
+projects/
