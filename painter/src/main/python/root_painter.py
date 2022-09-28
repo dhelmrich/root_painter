@@ -63,7 +63,6 @@ from instructions import send_instruction
 from functools import partial
 import qimage2ndarray
 from matplotlib import pyplot as plt
-from PIL import Image
 
 import numpy as np
 
@@ -737,31 +736,20 @@ class RootPainter(QtWidgets.QMainWindow):
         QtCore.QTimer.singleShot(500, check)
 
     def punch_foreground(self) :
-        """
-        if not hasattr(self,'previous_pixmap') :
-            return
-        previous_image = self.previous_pixmap.toImage()
-        annotation_image = self.scene.annot_pixmap.toImage()
-        #overlay_rgba = np.array(qimage2ndarray.byte_view(previous_image,"big"))
-        #annotation_rgba = np.array(qimage2ndarray.byte_view(annotation_image, "big"))
-        overlay_rgba = qimage2ndarray.byte_view(previous_image).astype(np.uint8)
-        annotation_rgba = qimage2ndarray.byte_view(annotation_image).astype(np.uint8)
-        mask = (overlay_rgba[:,:,0] >= 250) & (overlay_rgba[:,:,3] == 128)
-        color = np.array([self.scene.foreground_color.blue(),
-        self.scene.foreground_color.green(),
-        self.scene.foreground_color.red(),
-        self.scene.foreground_color.alpha()],dtype=np.uint8)
-        annotation_rgba[:,:,0] = np.where(mask,color[0],annotation_rgba[:,:,2])
-        annotation_rgba[:,:,1] = np.where(mask,color[1],annotation_rgba[:,:,1])
-        annotation_rgba[:,:,2] = np.where(mask,color[2],annotation_rgba[:,:,0])
-        annotation_rgba[:,:,3] = np.where(mask,color[3],annotation_rgba[:,:,3])
-        print(np.max(annotation_rgba[:,:,0]))
-        self.annot_pixmap.convertFromImage(qimage2ndarray.array2qimage(annotation_rgba))
+        #if not hasattr(self,'previous_pixmap') :
+        #    return
+        #previous_image = self.previous_pixmap.toImage()
+        #annotation_image = self.annot_pixmap.toImage()
+        #overlay_rgba = qimage2ndarray.byte_view(previous_image)
+        #annotation_rgba = qimage2ndarray.byte_view(annotation_image) 
+        #annotation_rgba[:,:,0] = np.where((overlay_rgba[:,:,0] >= 255) & (overlay_rgba[:,:,3] == 128),self.scene.foreground_color.red(),annotation_rgba[:,:,0])
+        #annotation_rgba[:,:,1] = np.where((overlay_rgba[:,:,0] >= 255) & (overlay_rgba[:,:,3] == 128),self.scene.foreground_color.green(),annotation_rgba[:,:,1])
+        #annotation_rgba[:,:,2] = np.where((overlay_rgba[:,:,0] >= 255) & (overlay_rgba[:,:,3] == 128),self.scene.foreground_color.blue(),annotation_rgba[:,:,2])
+        #annotation_rgba[:,:,3] = np.where((overlay_rgba[:,:,0] >= 255) & (overlay_rgba[:,:,3] == 128),self.scene.foreground_color.alpha(),annotation_rgba[:,:,3])
         #self.annot_pixmap.convertFromImage(annotation_image)
-        self.scene.history.append(self.annot_pixmap.copy())
-        self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
-        return
-        """
+        #self.scene.history.append(self.scene.annot_pixmap.copy())
+        #self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
+        #return
         if not hasattr(self,'previous_pixmap') :
             return
         PreviousContent = self.previous_pixmap.toImage()
@@ -779,26 +767,21 @@ class RootPainter(QtWidgets.QMainWindow):
         return
 
     def punch_background(self) :
-        """
-        if not hasattr(self,'previous_pixmap') :
-            return
-        previous_image = self.previous_pixmap.toImage()
-        annotation_image = self.annot_pixmap.toImage()
-        #overlay_rgba = np.array(qimage2ndarray.byte_view(previous_image,"big"))
-        #annotation_rgba = np.array(qimage2ndarray.byte_view(annotation_image, "big"))
-        overlay_rgba = qimage2ndarray.byte_view(previous_image).astype(np.uint8)
-        annotation_rgba = qimage2ndarray.byte_view(annotation_image).astype(np.uint8)
-        mask = (overlay_rgba[:,:,0] == 0) & (overlay_rgba[:,:,3] == 128)
-        annotation_rgba[:,:,0] = np.where(mask,self.scene.background_color.blue(),annotation_rgba[:,:,0])
-        annotation_rgba[:,:,1] = np.where(mask,self.scene.background_color.green(),annotation_rgba[:,:,1])
-        annotation_rgba[:,:,2] = np.where(mask,self.scene.background_color.red(),annotation_rgba[:,:,2])
-        annotation_rgba[:,:,3] = np.where(mask,self.scene.background_color.alpha(),annotation_rgba[:,:,3])
-        self.annot_pixmap.convertFromImage(qimage2ndarray.array2qimage(annotation_rgba))
+        #if not hasattr(self,'previous_pixmap') :
+        #    return
+        #previous_image = self.previous_pixmap.toImage()
+        #annotation_image = self.annot_pixmap.toImage()
+        #overlay_rgba = qimage2ndarray.byte_view(previous_image)
+        #annotation_rgba = qimage2ndarray.byte_view(annotation_image)
+        #annotation_rgba[:,:,0] = np.where((overlay_rgba[:,:,0] == 0) & (overlay_rgba[:,:,3] == 128),self.scene.background_color.red(),annotation_rgba[:,:,0])
+        #annotation_rgba[:,:,1] = np.where((overlay_rgba[:,:,0] == 0) & (overlay_rgba[:,:,3] == 128),self.scene.background_color.green(),annotation_rgba[:,:,1])
+        #annotation_rgba[:,:,2] = np.where((overlay_rgba[:,:,0] == 0) & (overlay_rgba[:,:,3] == 128),self.scene.background_color.blue(),annotation_rgba[:,:,2])
+        #annotation_rgba[:,:,3] = np.where((overlay_rgba[:,:,0] == 0) & (overlay_rgba[:,:,3] == 128),self.scene.background_color.alpha(),annotation_rgba[:,:,3])
         #self.annot_pixmap.convertFromImage(annotation_image)
-        self.scene.history.append(self.scene.annot_pixmap.copy())
-        self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
-        return
-        """
+        #self.scene.history.append(self.scene.annot_pixmap.copy())
+        #self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
+        #return
+
         if not hasattr(self,'previous_pixmap') :
             return
         PreviousContent = self.previous_pixmap.toImage()
@@ -818,7 +801,6 @@ class RootPainter(QtWidgets.QMainWindow):
     def punch_segmentation(self) :
         if not hasattr(self,'seg_pixmap') :
             return
-        """
         print("Punching segmentation...")
         SegmentationContent = self.seg_pixmap.toImage()
         CombinedAnnot = self.annot_pixmap.toImage()
@@ -834,19 +816,17 @@ class RootPainter(QtWidgets.QMainWindow):
         self.scene.history.append(self.scene.annot_pixmap.copy())
         print("Done!")
         return
-        """
-        seg_image = self.seg_pixmap.toImage()
-        ano_image = self.annot_pixmap.toImage()
-        segmentation_rgba = np.array(qimage2ndarray.byte_view(seg_image)).astype(np.uint8)
-        annotation_rgba = np.array(qimage2ndarray.byte_view(ano_image)).astype(np.uint8)
-        mask = (segmentation_rgba[:,:,3] == 255)
-        annotation_rgba[:,:,0] = np.where(mask,self.scene.foreground_color.red(),annotation_rgba[:,:,0])
-        annotation_rgba[:,:,1] = np.where(mask,self.scene.foreground_color.green(),annotation_rgba[:,:,1])
-        annotation_rgba[:,:,2] = np.where(mask,self.scene.foreground_color.blue(),annotation_rgba[:,:,2])
-        annotation_rgba[:,:,3] = np.where(mask,self.scene.foreground_color.alpha(),annotation_rgba[:,:,3])
-        self.annot_pixmap.convertFromImage(qimage2ndarray.array2qimage(annotation_rgba))
-        self.scene.history.append(self.scene.annot_pixmap.copy())
-        self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
+        #seg_image = self.seg_pixmap.toImage()
+        #ano_image = self.annot_pixmap.toImage()
+        #segmentation_rgba = np.array(qimage2ndarray.byte_view(seg_image))
+        #annotation_rgba = np.array(qimage2ndarray.byte_view(ano_image))
+        #annotation_rgba[:,:,0] = np.where((segmentation_rgba[:,:,3] == 255),self.scene.foreground_color.red(),annotation_rgba[:,:,0]+1)
+        #annotation_rgba[:,:,1] = np.where((segmentation_rgba[:,:,3] == 255),self.scene.foreground_color.green(),annotation_rgba[:,:,1]+1)
+        #annotation_rgba[:,:,2] = np.where((segmentation_rgba[:,:,3] == 255),self.scene.foreground_color.blue(),annotation_rgba[:,:,2]+1)
+        #annotation_rgba[:,:,3] = np.where((segmentation_rgba[:,:,3] == 255),self.scene.foreground_color.alpha(),annotation_rgba[:,:,3]+1)
+        #self.annot_pixmap.convertFromImage(qimage2ndarray.array2qimage(annotation_rgba))
+        #self.scene.history.append(self.scene.annot_pixmap.copy())
+        #self.annot_pixmap_holder.setPixmap(self.annot_pixmap)
 
     def close_project_window(self):
         self.close()
@@ -1229,22 +1209,47 @@ class RootPainter(QtWidgets.QMainWindow):
                                                     self.png_fname,
                                                     self.train_annot_dir,
                                                     self.val_annot_dir)
-        self.save_all()
 
-    def save_all(self) :
-        if not hasattr(self,"seg_pixmap") or not hasattr(self,"annot_pixmap") :
-            return
+    def save_all(self, fpath:str) :
+        # save current annotation first
+        fname = os.path.basename(fpath)
+        # set first image from project to be current image
+        image_path = os.path.join(self.dataset_dir, fname)
+        png_fname = os.path.splitext(fname)[0] + '.png'
+        seg_path = os.path.join(self.seg_dir, self.png_fname)
+        annot_path = get_annot_path(png_fname,
+                                         self.train_annot_dir,
+                                         self.val_annot_dir)
+        #todo trigger overwrite of segmentation
+        from PIL import Image
+        import cv2
+        #annot_path = Path.joinpath(self.annot_path)
+        #Annotation = cv2.imread()
+        #Image = cv2.imread(self.png_fname)
         seg_image = self.seg_pixmap.toImage()
         annot_image = self.annot_pixmap.toImage()
         seg_image = seg_image.convertToFormat(QtGui.QImage.Format.Format_Grayscale8)
         annot_image = annot_image.convertToFormat(QtGui.QImage.Format.Format_Grayscale8)
+
+        buffer = QtCore.QBuffer()
+        buffer.open(QtCore.QBuffer.ReadWrite)
+
+        seg_image.save(buffer,"PNG")
+        pil_seg = Image.open(io.BytesIO(buffer.data()))
+
+        
         seg_array = np.array(qimage2ndarray.byte_view(seg_image))
         seg_array = np.concatenate([seg_array,seg_array,seg_array],axis=2)
         annot_array = np.array(qimage2ndarray.byte_view(annot_image))
-        annot_array = np.concatenate([annot_array,annot_array,annot_array],axis=2)        
+        annot_array = np.concatenate([annot_array,annot_array,annot_array],axis=2)
+        
         result = np.clip(annot_array,0,255)
-        result = np.where(result != 87, 0, result)
-        result_image = Image.fromarray(result)
+        background = np.where(result == 87, 0, result)
+        foreground = np.where(result == 127, 0, result)
+        print(foreground)
+        print(background)
+
+        result_image = Image.fromarray(foreground)
         savepath = os.path.join(self.seg_dir, self.seg_path)
         try:
             print("Saving in: ", savepath)
@@ -1253,4 +1258,6 @@ class RootPainter(QtWidgets.QMainWindow):
             os.remove(savepath[:-4] + '_final.png')
             print('Overwrite...')
             result_image.save(savepath[:-4] + '_final.png')
+         
+        self.save_annotation()
       
